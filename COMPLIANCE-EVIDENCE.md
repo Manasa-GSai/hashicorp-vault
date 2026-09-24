@@ -109,7 +109,7 @@ FIPS-path release sign-off.**
 
 | Check | Command / Method | Result | Date | Verifier |
 |---|---|---|---|---|
-| OS FIPS mode enabled | `cat /proc/sys/crypto/fips_enabled` → must be `1` | TO-BE-FILLED | TO-BE-FILLED | TO-BE-FILLED |
+| OS FIPS kernel status | `cat /proc/sys/crypto/fips_enabled` → must be `1` | TO-BE-FILLED | TO-BE-FILLED | TO-BE-FILLED |
 | glibc container base | `ldd --version` or `getconf GNU_LIBC_VERSION` | TO-BE-FILLED | TO-BE-FILLED | TO-BE-FILLED |
 | TLS suite check | `openssl s_client` or listener config inspection | TO-BE-FILLED | TO-BE-FILLED | TO-BE-FILLED |
 | AWS KMS FIPS endpoint check | Seal config `address = kms-fips.<region>.amazonaws.com` | TO-BE-FILLED | TO-BE-FILLED | TO-BE-FILLED |
