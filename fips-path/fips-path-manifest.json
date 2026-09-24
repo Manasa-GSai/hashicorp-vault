@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "description": "Machine-readable artifact inventory for OSS FIPS-path validation inputs. Lists the files and path patterns that belong to the bounded OSS FIPS-aligned posture. This manifest is consumed by release and compliance automation to deterministically scope TLS, KMS, image, wording, and evidence checks without treating all Vault Community files as FIPS-path content.",
+  "classifier_note": "This manifest does not imply that Vault Community is FIPS 140-3 validated, certified, or compliant for its internal cryptographic operations. See FIPS-140-3-COMPLIANCE.md for the authoritative OSS posture boundary.",
+  "artifact_classes": {
+    "hcl_config": {
+      "description": "FIPS-path Vault HCL listener and seal configuration examples",
+      "patterns": [
+        "config/fips-path/**/*.hcl",
+        "fips-path/**/*.hcl"
+      ]
+    },
+    "helm_values": {
+      "description": "FIPS-path Helm chart values for Kubernetes deployments",
+      "patterns": [
+        "helm/fips-path/**/*.yaml",
+        "helm/fips-path/**/*.yml",
+        "fips-path/helm/**/*.yaml",
+        "fips-path/helm/**/*.yml"
+      ]
+    },
+    "markdown": {
+      "description": "Markdown posture artifacts including compliance documentation, operator guides, and release notes that are subject to the overclaim wording gate",
+      "patterns": [
+        "FIPS-140-3-COMPLIANCE.md",
+        "**/*.md"
+      ]
+    },
+    "evidence": {
+      "description": "Audit-ready FIPS compliance evidence package — must be updated each release and verified within 90 days",
+      "patterns": [
+        "COMPLIANCE-EVIDENCE.md"
+      ]
+    },
+    "wording_inputs": {
+      "description": "Scripts and configuration files scanned by the OSS wording guardrail for prohibited FIPS claim language",
+      "patterns": [
+        "scripts/fips-path/**",
+        "fips-path/scripts/**"
+      ]
+    }
+  },
+  "validation_gates": [
+    "tls_pin",
+    "algorithm",
+    "kms_endpoint",
+    "image_base",
+    "digest_pin",
+    "evidence_freshness",
+    "overclaim_wording"
+  ],
+  "out_of_scope_paths": [
+    "Dockerfile (default Alpine target)",
+    "ui/**",
+    "enos/**",
+    "sdk/helper/keysutil/policy.go",
+    "vault/barrier_aes_gcm.go",
+    "builtin/logical/transit/**",
+    "builtin/logical/pki/**"
+  ]
+}
