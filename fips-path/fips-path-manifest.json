@@ -8,6 +8,9 @@
       "patterns": [
         "config/fips-path/**/*.hcl",
         "fips-path/**/*.hcl"
+      ],
+      "known_files": [
+        "config/fips-path/vault.hcl"
       ]
     },
     "helm_values": {
@@ -17,6 +20,9 @@
         "helm/fips-path/**/*.yml",
         "fips-path/helm/**/*.yaml",
         "fips-path/helm/**/*.yml"
+      ],
+      "known_files": [
+        "helm/fips-path/values.yaml"
       ]
     },
     "markdown": {
