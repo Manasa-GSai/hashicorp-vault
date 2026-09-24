@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "description": "OSS FIPS-path artifact provenance fixture. Replace all TO-BE-FILLED and PLACEHOLDER values before release sign-off. See COMPLIANCE-EVIDENCE.md §4 for the full evidence record.",
+  "compliance_note": "This fixture documents the expected provenance shape for Vault Community OSS FIPS-path artifacts. Vault Community internal cryptographic operations are not performed in a CMVP-validated module. See FIPS-140-3-COMPLIANCE.md for the authoritative OSS posture boundary.",
+  "vault_version": "TO-BE-FILLED-BY-RELEASE-OWNER",
+  "version_metadata": "fips-path",
+  "golang_fips_go_version": "TO-BE-FILLED-BY-RELEASE-OWNER (e.g. go1.22.5-fips-1)",
+  "openssl_fips_provider_package_version": "TO-BE-FILLED-BY-RELEASE-OWNER (e.g. openssl 3.0.13-1)",
+  "base_image_digest": "TO-BE-FILLED-BY-RELEASE-OWNER (sha256:<64-hex-chars> of ubuntu:focal used by fips-path-builder stage)",
+  "sbom_path": "TO-BE-FILLED-BY-RELEASE-OWNER (e.g. vault-<version>-fips-path-linux-amd64.spdx.json or .cyclonedx.json)",
+  "provenance_path": "TO-BE-FILLED-BY-RELEASE-OWNER (path to SLSA provenance attestation or GitHub attestation URL)",
+  "build_date": "TO-BE-FILLED-BY-RELEASE-OWNER (ISO-8601 UTC, e.g. 2026-09-24T00:00:00Z)",
+  "goos": "linux",
+  "goarch": "amd64",
+  "cgo_enabled": "1",
+  "docker_target": "fips-path-builder",
+  "required_evidence_freshness_days": 90
+}
