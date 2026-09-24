@@ -22,12 +22,15 @@ which deployment conditions are required before any FIPS-aligned statement may b
 
 ## 2. OSS Constraint — What Vault Community Cannot Claim
 
+FIPS 140-3 validates cryptographic modules. It does not validate repositories, applications,
+complete systems, or codebases. A CMVP certificate is issued to a specific cryptographic module
+implementation, not to the product or codebase that uses it.
+
 Vault Community builds and ships with standard Go cryptographic libraries. **The stock Go
 `crypto` package and its sub-packages are not CMVP-validated cryptographic modules.**
 Therefore:
 
-> **Vault Community cannot make a FIPS 140-3 compliance claim for its own cryptographic
-> operations because the community build does not link a CMVP-validated cryptographic module.**
+> **Vault Community / OSS cannot make a FIPS 140-3 compliance claim for its own cryptographic operations because the community build does not link a CMVP-validated cryptographic module.**
 
 No configuration setting, build flag, or environment variable changes this fact. Operators and
 downstream documentation **must not** describe Vault Community itself as FIPS 140-3 validated,
@@ -121,10 +124,11 @@ from drifting toward misleading OSS compliance claims.
 ### 5a. No fips-Style Runtime Toggle
 
 Vault Community does not and must not expose a configuration key, API parameter, or
-environment variable that claims to enable FIPS compliance at runtime. Such a toggle
-would imply that the Vault binary switches into a validated cryptographic mode, which is
-false for the community build. A fips-style boolean stanza in the listener or server
-block is not supported and must not be added to any FIPS-path configuration example.
+environment variable that claims to enable FIPS compliance at runtime. No configuration flag
+alone can make OSS Vault FIPS validated — such a toggle would imply that the Vault binary
+switches into a validated cryptographic mode, which is false for the community build. A
+fips-style boolean stanza in the listener or server block is not supported and must not be
+added to any FIPS-path configuration example.
 
 ### 5b. No boringcrypto Build Experiment Assertion for OSS
 
@@ -144,7 +148,7 @@ matter and does not affect the OSS posture described in this document.
 | fips-style boolean configuration stanza | **Excluded** | No validated module; toggle would be misleading |
 | boringcrypto build experiment | **Excluded** from OSS posture | Not present in community release artifacts |
 | BoringCrypto symbol gate or assertion | **Excluded** from OSS posture | Not applicable to community build |
-| FIPS 140-4 claims | **Out of scope** | FIPS 140-4 is a separate standard not yet applicable |
+| FIPS 140-4 claims | **Out of scope** | FIPS 140-4 is not a valid target for this work; this work targets FIPS 140-3 only. FIPS 140-4 is a separate standard not yet applicable to this project. |
 | Enterprise FIPS artifacts (Seal Wrap, PKCS#11 seal, Entropy Augmentation, replication FIPS) | **Out of scope** | Enterprise-only features; not part of OSS posture |
 
 ---
@@ -176,6 +180,29 @@ The following are explicitly out of scope for this document and the OSS FIPS pos
 - Making claims about FIPS 140-4 or any future standard not yet applicable to the community build.
 - Providing runtime enforcement of algorithm restrictions inside the Vault binary for OSS builds.
 - Replacing or modifying Vault Community's existing cryptographic behavior.
+
+---
+
+## 8. Vault Community OSS vs. Vault Enterprise Plus
+
+Vault Community (OSS) and Vault Enterprise Plus follow distinct FIPS-related paths:
+
+| Aspect | Vault Community (OSS) | Vault Enterprise Plus |
+|---|---|---|
+| **FIPS path** | FIPS-aligned deployment posture only (section 2a claim) | Official HashiCorp-supported FIPS path with validated module linking |
+| **Cryptographic module** | Standard Go `crypto`; not CMVP-validated | Links a CMVP-validated BoringCrypto module (FIPS 140-3 Certificate #4735) |
+| **CMVP certificate** | None — OSS binary holds no certificate | BoringCrypto certificate applies to the validated module used in the build |
+| **Build experiment** | Not built with the boringcrypto experiment | Built with validated module support enabled |
+| **Seal Wrap / Entropy Augmentation** | Not available | Available as Enterprise-only features |
+| **Supported FIPS path** | Not the official HashiCorp-supported path | **Enterprise Plus is the official HashiCorp-supported FIPS path** |
+
+> **Vault Enterprise Plus is the official HashiCorp-supported FIPS path.** Operators with
+> formal FIPS 140-3 compliance requirements that cannot be satisfied by the section 2a OSS
+> deployment posture should use Vault Enterprise Plus.
+
+This document applies only to Vault Community (OSS). Enterprise Plus FIPS behavior, its
+CMVP certificate details, and its deployment requirements are governed separately and must
+not be described or implied within this OSS posture document.
 
 ---
 
