@@ -1,0 +1,5 @@
+{
+  "version": "1",
+  "description": "Minimal FIPS-path artifact manifest for regression test fixture",
+  "artifact_classes": []
+}

@@ -1,0 +1,13 @@
+# FIPS-path Helm values — fail-alpine fixture
+# INTENTIONALLY uses Alpine as the image base to trigger the image-glibc gate.
+# This fixture is for regression testing only; never use Alpine for FIPS-path deployments.
+
+server:
+  image:
+    repository: "alpine"
+    tag: "3.18"
+    # Alpine uses musl libc which is not glibc-compatible for FIPS-path builds.
+    pullPolicy: IfNotPresent
+
+  extraEnvironmentVars:
+    VAULT_FIPS_PATH: "1"

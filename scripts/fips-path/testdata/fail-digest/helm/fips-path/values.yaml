@@ -1,0 +1,13 @@
+# FIPS-path Helm values — fail-digest fixture
+# INTENTIONALLY omits image digest pinning to trigger the image-digest-pinned gate.
+# Production FIPS-path deployments must pin images to a digest pin (see pass fixture).
+
+server:
+  image:
+    repository: "<PLACEHOLDER-REGISTRY>/vault"
+    tag: "<PLACEHOLDER-TAG>"
+    # No digest annotation — this is the intentional missing element for this fixture.
+    pullPolicy: IfNotPresent
+
+  extraEnvironmentVars:
+    VAULT_FIPS_PATH: "1"

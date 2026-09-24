@@ -1,0 +1,20 @@
+# FIPS-path Helm values — pass fixture
+# Uses glibc-compatible base image (UBI/Debian), digest-pinned tag, VAULT_FIPS_PATH=1.
+# No Alpine, no musl, no floating tags.
+# Replace <PLACEHOLDER-*> values before deploying.
+
+server:
+  image:
+    repository: "<PLACEHOLDER-REGISTRY>/vault"
+    tag: "<PLACEHOLDER-TAG>"
+    # Production deployments must pin to a sha256 digest to prevent image substitution:
+    #   image: <PLACEHOLDER-REGISTRY>/vault@sha256:<IMAGE-DIGEST>
+    # Example sha256 digest (placeholder — replace with the actual digest from release provenance):
+    #   sha256:0000000000000000000000000000000000000000000000000000000000000000
+    pullPolicy: IfNotPresent
+
+  extraEnvironmentVars:
+    VAULT_FIPS_PATH: "1"
+
+  affinity: {}
+  tolerations: []

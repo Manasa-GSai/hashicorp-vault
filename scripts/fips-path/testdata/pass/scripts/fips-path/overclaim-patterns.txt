@@ -1,0 +1,9 @@
+PROHIBITED: Vault is FIPS 140-3 compliant
+PROHIBITED: Vault is FIPS 140-3 validated
+PROHIBITED: Vault is FIPS 140-3 certified
+PROHIBITED: FIPS mode enabled
+PROHIBITED: Vault is FIPS 140-4 compliant
+PROHIBITED: AWS KMS auto-unseal makes Vault FIPS 140-3 compliant
+PROHIBITED: Vault's cryptography is FIPS-approved
+APPROVED: Vault Community is deployed in a FIPS-aligned configuration; Vault's internal cryptographic operations are not performed in a CMVP-validated module.
+NOTE: FIPS 140-3 validates cryptographic modules. It does not validate repositories, applications, systems, or codebases.
