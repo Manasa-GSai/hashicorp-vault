@@ -209,8 +209,12 @@ not be described or implied within this OSS posture document.
 ## 8. Maintainer Guidance
 
 This document is the source of truth for subsequent implementation and documentation work
-across all work orders in the OSS FIPS 140-3 posture epic. When writing operator guides,
-release notes, Helm chart READMEs, or CI pipeline documentation:
+across all work orders in the OSS FIPS 140-3 posture epic. The required release-specific
+audit anchor for CMVP certificates, SBOM, provenance, runtime configuration, and verification
+logs is [COMPLIANCE-EVIDENCE.md](./COMPLIANCE-EVIDENCE.md). Every FIPS-path release must
+have a completed and signed-off `COMPLIANCE-EVIDENCE.md` before the release is promoted.
+
+When writing operator guides, release notes, Helm chart READMEs, or CI pipeline documentation:
 
 1. Verify that any compliance language matches the **approved wording** in §4a.
 2. Check that no **prohibited wording** from §4b is present.
