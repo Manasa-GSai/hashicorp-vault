@@ -1,0 +1,123 @@
+# FIPS-path Vault Helm Values
+#
+# This file is a scoped Helm values override for Vault Community deployments
+# that use VAULT_FIPS_PATH=1 to enforce a FIPS-aligned runtime posture on
+# Kubernetes.  Merge it with the release Helm chart using:
+#
+#   helm upgrade vault hashicorp/vault \
+#     -f helm/fips-path/values.yaml
+#
+# COMPLIANCE POSTURE (see FIPS-140-3-COMPLIANCE.md §2):
+#   Vault Community is deployed in a FIPS-aligned configuration; Vault's internal
+#   cryptographic operations are not performed in a CMVP-validated module.
+#   Setting VAULT_FIPS_PATH=1 alone does not make Vault Community FIPS 140-3 validated.
+#
+# IMAGE REQUIREMENTS for FIPS-path containers:
+#   - Image MUST be glibc-based (UBI, Debian slim, or equivalent).
+#     Images built on non-glibc C libraries cannot link system OpenSSL and are
+#     PROHIBITED for FIPS-path deployments.
+#   - Image MUST be pinned by sha256 digest to prevent image mutation attacks.
+#   - Floating or mutable tags are PROHIBITED; only immutable digest-pinned
+#     references are acceptable for FIPS-path deployments.
+#
+# IMPORTANT: Replace all <PLACEHOLDER-*> values before deploying to a real cluster.
+#   Do NOT commit registry credentials, pull secrets, service account tokens,
+#   cluster-specific hostnames, or real OCI digest values to this file.
+
+server:
+  # -------------------------------------------------------------------------
+  # Image: glibc-based, digest-pinned
+  #
+  # Use a UBI (Universal Base Image) or Debian slim image built with the
+  # golang-fips/go toolchain and glibc-linked OpenSSL.  Non-glibc images
+  # are not compatible with the golang-fips/go toolchain's system OpenSSL
+  # linkage and MUST NOT be used for FIPS-path deployments.
+  #
+  # Replace <PLACEHOLDER-REGISTRY>, <PLACEHOLDER-TAG>, and <PLACEHOLDER-SHA256>
+  # with the real registry path, version tag, and OCI sha256 digest for the
+  # FIPS-path release artifact. The digest field is REQUIRED for immutability.
+  # -------------------------------------------------------------------------
+  image:
+    repository: "<PLACEHOLDER-REGISTRY>/vault"
+    # Tag format: <vault-version>-fips-path (e.g., 1.19.0-fips-path)
+    # This tag MUST reference a glibc-based (UBI or Debian slim) image.
+    tag: "<PLACEHOLDER-TAG>"
+    # OCI content digest for immutable pinning.
+    # sha256: value is populated by the release pipeline from COMPLIANCE-EVIDENCE.md §4.
+    # Placeholder format: sha256:<64-hex-characters>
+    # Example (do NOT use this — replace with the real release digest):
+    # digest: "sha256:<PLACEHOLDER-SHA256-64-char-hex>"
+    pullPolicy: IfNotPresent
+
+  # -------------------------------------------------------------------------
+  # Runtime gate: VAULT_FIPS_PATH=1
+  #
+  # This environment variable activates all VAULT_FIPS_PATH enforcement gates:
+  #   - checkFIPSPathKeyType: rejects chacha20-poly1305, ed25519, x25519, ff3-1
+  #   - warnHostFIPSMode: warns if /proc/sys/crypto/fips_enabled != 1
+  #   - validate-oss-posture.sh: scans artifact boundaries in CI
+  #
+  # Setting this to "1" does NOT make Vault Community FIPS 140-3 validated.
+  # It gates algorithm enforcement and evidence checks only.
+  # -------------------------------------------------------------------------
+  extraEnvironmentVars:
+    VAULT_FIPS_PATH: "1"
+
+  # -------------------------------------------------------------------------
+  # Resources (adjust per cluster sizing guidance)
+  # -------------------------------------------------------------------------
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  # -------------------------------------------------------------------------
+  # HA / Raft storage
+  # -------------------------------------------------------------------------
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = false
+        listener "tcp" {
+          tls_disable     = 0
+          address         = "[::]:8200"
+          cluster_address = "[::]:8201"
+          # TLS configuration is managed via the Kubernetes Secret mounted below.
+          # In production, configure tls_cert_file and tls_key_file or use
+          # cert-manager/external-secrets to populate the TLS secret.
+        }
+        storage "raft" {
+          path = "/vault/data"
+        }
+        service_registration "kubernetes" {}
+
+  # -------------------------------------------------------------------------
+  # TLS Secret (placeholder — populate via cert-manager or external-secrets)
+  # -------------------------------------------------------------------------
+  # volumes:
+  #   - name: vault-tls
+  #     secret:
+  #       secretName: <PLACEHOLDER-TLS-SECRET>
+  # volumeMounts:
+  #   - name: vault-tls
+  #     mountPath: /vault/tls
+  #     readOnly: true
+
+# -------------------------------------------------------------------------
+# UI: disabled for FIPS-path deployments (reduces attack surface)
+# -------------------------------------------------------------------------
+ui:
+  enabled: false
+
+# -------------------------------------------------------------------------
+# Agent Injector: disabled unless required
+# -------------------------------------------------------------------------
+injector:
+  enabled: false
