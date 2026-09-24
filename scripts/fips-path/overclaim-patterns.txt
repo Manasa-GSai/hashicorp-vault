@@ -1,0 +1,103 @@
+# OSS Vault FIPS 140-3 Overclaim Pattern File
+#
+# This file is the wording data source for OSS FIPS-path documentation and release scans.
+# Lines are prefixed with APPROVED:, PROHIBITED:, or NOTE: so shell, grep, or CI scripts
+# can parse them predictably without additional dependencies.
+#
+# Usage:
+#   grep "^PROHIBITED:" scripts/fips-path/overclaim-patterns.txt | cut -d: -f2- \
+#     | while read pat; do grep -rn "$pat" docs/ && echo "FAIL: overclaim found: $pat"; done
+#
+# This file does NOT implement the scanner. It only supplies the wording data.
+# Scanner implementation belongs in WO-013 (validate-oss-posture.sh).
+#
+# Source of truth: FIPS-140-3-COMPLIANCE.md §2, §2a, §4a, §4b, §5
+
+# ---------------------------------------------------------------------------
+# SCOPE NOTE
+# ---------------------------------------------------------------------------
+
+NOTE: This file covers Vault Community (OSS) only. Vault Enterprise Plus is the official
+NOTE: HashiCorp-supported FIPS path and has separate documentation. Enterprise Plus may be
+NOTE: referenced here only to distinguish it from the OSS posture, not to imply OSS has
+NOTE: Enterprise validation.
+
+# ---------------------------------------------------------------------------
+# MODULE VALIDATION SCOPE
+# ---------------------------------------------------------------------------
+
+NOTE: FIPS 140-3 validates cryptographic modules. It does not validate repositories, applications, systems, or codebases.
+NOTE: A CMVP certificate is issued to a specific cryptographic module, not to a product or codebase that uses it.
+NOTE: Vault Community internal cryptographic operations are not performed in a CMVP-validated module.
+
+# ---------------------------------------------------------------------------
+# APPROVED WORDING
+# ---------------------------------------------------------------------------
+
+# These phrases are the bounded OSS posture statements approved for use in operator guides,
+# release notes, Helm chart READMEs, and deployment documentation.
+
+APPROVED: Vault Community is deployed in a FIPS-aligned configuration; Vault's internal cryptographic operations are not performed in a CMVP-validated module.
+APPROVED: This deployment uses OS-level FIPS mode and restricts Vault configuration to FIPS-Approved algorithms. Vault's internal Go cryptographic operations are outside a validated boundary and are documented as residual gaps in COMPLIANCE-EVIDENCE.md.
+APPROVED: The AWS KMS seal uses a FIPS 140-3 validated module for unseal key wrapping. Vault's barrier encryption and internal cryptographic operations are not covered by that certificate.
+APPROVED: Vault Community is FIPS-aligned, not FIPS-validated. Internal cryptographic operations remain outside a CMVP-validated module.
+APPROVED: OS-level FIPS mode, FIPS-Approved algorithm restriction in configuration, validated cryptographic modules at available seal and non-Vault boundaries, and documented residual-gap evidence.
+
+# ---------------------------------------------------------------------------
+# PROHIBITED WORDING — OSS PRODUCT VALIDATION CLAIMS
+# ---------------------------------------------------------------------------
+
+# These phrases must NOT appear as affirmative statements about Vault Community OSS.
+# Scanners should flag any match in FIPS-path Markdown, HCL examples, Helm values,
+# release notes, and image labels.
+# IMPORTANT: These entries are scanner INPUT data. Their presence in this file as
+# PROHIBITED: lines does not make them approved. A scanner must check that they do NOT
+# appear as affirmative statements in release artifacts.
+
+PROHIBITED: Vault is FIPS 140-3 compliant
+PROHIBITED: Vault is FIPS 140-3 validated
+PROHIBITED: Vault is FIPS 140-3 certified
+PROHIBITED: Vault Community is FIPS 140-3 compliant
+PROHIBITED: Vault Community is FIPS 140-3 validated
+PROHIBITED: Vault Community is FIPS 140-3 certified
+PROHIBITED: Vault is FIPS compliant
+PROHIBITED: Vault is FIPS validated
+PROHIBITED: FIPS mode enabled makes Vault FIPS compliant
+PROHIBITED: enabling FIPS mode makes Vault FIPS validated
+PROHIBITED: AWS KMS auto-unseal makes Vault FIPS 140-3 compliant
+PROHIBITED: Vault's cryptography is FIPS-approved
+PROHIBITED: this repository is FIPS 140-3 validated
+PROHIBITED: this application is FIPS 140-3 validated
+PROHIBITED: this codebase is FIPS 140-3 compliant
+
+# ---------------------------------------------------------------------------
+# PROHIBITED WORDING — INVALID FIPS 140-4 TARGET
+# ---------------------------------------------------------------------------
+
+NOTE: FIPS 140-4 is not a valid target for this OSS posture work. This project targets FIPS 140-3 only.
+NOTE: Any reference to FIPS 140-4 as a target or compliance claim for OSS Vault must be treated as prohibited.
+
+PROHIBITED: Vault is FIPS 140-4 compliant
+PROHIBITED: Vault is FIPS 140-4 validated
+PROHIBITED: Vault is FIPS 140-4 certified
+PROHIBITED: this work targets FIPS 140-4
+PROHIBITED: FIPS 140-4 compliance for Vault Community
+
+# ---------------------------------------------------------------------------
+# PROHIBITED WORDING — OSS SCOPE OVERSTATEMENT
+# ---------------------------------------------------------------------------
+
+PROHIBITED: no configuration flag is needed for FIPS compliance
+PROHIBITED: Vault is automatically FIPS compliant on FIPS hosts
+PROHIBITED: deploying on a FIPS OS makes Vault FIPS validated
+PROHIBITED: Vault Enterprise Plus features available in OSS
+
+# ---------------------------------------------------------------------------
+# NOTES FOR SCANNER IMPLEMENTATION (WO-013)
+# ---------------------------------------------------------------------------
+
+NOTE: Scanner must distinguish PROHIBITED phrases used as scanner data (in this file) from
+NOTE: affirmative statements in release artifacts. Use context-aware matching or exclude
+NOTE: scripts/fips-path/ from scans of approved content.
+NOTE: Scanner must report all failures with the phrase matched and the file:line location.
+NOTE: Scanner must not expose secrets, tokens, private keys, or credentials in failure output.
