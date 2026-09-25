@@ -333,12 +333,22 @@ fips-path-detect-toolchain:
 	@echo "==> Verifying golang-fips/go toolchain..."
 	@$(CURDIR)/scripts/fips-path/detect-golang-fips-toolchain.sh
 
-# fips-path-test-toolchain runs the fixture-based unit tests for the toolchain
-# detection and provenance generation scripts.  No Docker, no network required.
-.PHONY: fips-path-test-toolchain
-fips-path-test-toolchain:
-	@echo "==> Running golang-fips/go toolchain detection unit tests..."
-	@$(CURDIR)/scripts/fips-path/test-detect-golang-fips-toolchain.sh
+# fips-path-audit runs the Go runtime FIPS CI audit gates without Docker or
+# network access.  Reports rule names, file paths, line numbers, and
+# remediation guidance for any failures.
+#
+# NON-VALIDATION NOTICE: Passing these gates confirms posture, not CMVP certification.
+.PHONY: fips-path-audit
+fips-path-audit:
+	@echo "==> Running Go runtime FIPS CI audit gates..."
+	@$(CURDIR)/scripts/fips-path/audit-go-runtime-fips.sh
+
+# fips-path-test-audit runs the fixture-based tests for the audit gate script.
+# No Docker, network, or FIPS-enabled host required.
+.PHONY: fips-path-test-audit
+fips-path-test-audit:
+	@echo "==> Running Go runtime FIPS audit gate unit tests..."
+	@$(CURDIR)/scripts/fips-path/test-audit-go-runtime-fips.sh
 
 .PHONY: check-tools
 check-tools:
@@ -451,7 +461,7 @@ ci-copywriteheaders:
 	cd sdk && $(CURDIR)/scripts/copywrite-exceptions.sh
 	cd shamir && $(CURDIR)/scripts/copywrite-exceptions.sh
 
-.PHONY: all bin default prep test vet bootstrap fmt fmtcheck mysql-database-plugin mysql-legacy-database-plugin cassandra-database-plugin influxdb-database-plugin postgresql-database-plugin mssql-database-plugin hana-database-plugin mongodb-database-plugin ember-dist ember-dist-dev static-dist static-dist-dev assetcheck check-vault-in-path packages build build-ci semgrep semgrep-ci vet-codechecker ci-vet-codechecker dev fips-path-build fips-path-detect-toolchain fips-path-test-toolchain
+.PHONY: all bin default prep test vet bootstrap fmt fmtcheck mysql-database-plugin mysql-legacy-database-plugin cassandra-database-plugin influxdb-database-plugin postgresql-database-plugin mssql-database-plugin hana-database-plugin mongodb-database-plugin ember-dist ember-dist-dev static-dist static-dist-dev assetcheck check-vault-in-path packages build build-ci semgrep semgrep-ci vet-codechecker ci-vet-codechecker dev fips-path-build fips-path-detect-toolchain fips-path-test-toolchain fips-path-audit fips-path-test-audit
 
 .NOTPARALLEL: ember-dist ember-dist-dev
 

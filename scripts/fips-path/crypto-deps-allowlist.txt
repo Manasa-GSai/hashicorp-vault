@@ -1,0 +1,31 @@
+# crypto-deps-allowlist.txt — approved crypto-sensitive dependency versions
+#
+# This file is the single source of truth for explicitly approved
+# crypto-sensitive Go module dependencies in the FIPS-path posture.
+#
+# Format: <module-path> <version>
+#
+# Entries are matched exactly against go.mod require directives.
+# Any crypto-sensitive dependency NOT in this list causes a GOMOD-003
+# warning in scripts/fips-path/audit-go-runtime-fips.sh.
+#
+# HOW TO UPDATE
+# =============
+# 1. Identify the new/changed dependency in go.mod.
+# 2. Verify the new version does not introduce prohibited algorithms
+#    (chacha20, ed25519, x25519, ff3, des, 3des, rc4, md5, sha1 for new
+#    cryptographic functions).
+# 3. Add or update the entry below.
+# 4. Run: make fips-path-audit
+# 5. Document the review in the corresponding PR or COMPLIANCE-EVIDENCE.md.
+#
+# This file intentionally lists only the module path and version — never
+# hashes, tokens, credentials, or private key material.
+
+# Standard Go extended crypto library
+# Reviewed: pinned to explicit tagged release; no prohibited algorithm additions.
+golang.org/x/crypto v0.27.0
+
+# Standard Go network library (TLS dependency)
+# Reviewed: no crypto-primitive changes affecting FIPS-path posture.
+golang.org/x/net v0.29.0

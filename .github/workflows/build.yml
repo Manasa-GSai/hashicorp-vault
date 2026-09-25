@@ -672,6 +672,52 @@ jobs:
       - name: OSS FIPS-path posture validation
         run: make check-fips-path
 
+  fips-path-go-audit:
+    # Run Go runtime FIPS CI audit gates on pull requests that touch Go source,
+    # go.mod, workflow files, or FIPS-path scripts.  Gates check:
+    #   1. GODEBUG=fips140=only in FIPS-path CI jobs
+    #   2. GOFIPS140 provenance artifact presence and required fields
+    #   3. Crypto-sensitive go.mod dependency pinning
+    #   4. tls.Config MinVersion and prohibited cipher suite usage in Go source
+    #
+    # Runs locally without Docker, cloud credentials, or a FIPS-enabled host:
+    #   make fips-path-audit
+    #
+    # NON-VALIDATION NOTICE: Passing these gates confirms FIPS-path configuration
+    # posture; the OSS binary is NOT a CMVP-validated cryptographic module.
+    name: Go runtime FIPS audit gates
+    env:
+      GODEBUG: fips140=only
+    if: |
+      always() &&
+      (
+        github.event_name == 'schedule' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.draft == false &&
+          (
+            contains(fromJSON(needs.setup.outputs.changed-files).groups, 'go_app') ||
+            contains(fromJSON(needs.setup.outputs.changed-files).groups, 'go_tests') ||
+            contains(fromJSON(needs.setup.outputs.changed-files).groups, 'go_modules') ||
+            contains(fromJSON(needs.setup.outputs.changed-files).groups, 'go_toolchain') ||
+            contains(fromJSON(needs.setup.outputs.changed-files).groups, 'fips_path') ||
+            contains(fromJSON(needs.setup.outputs.changed-files).groups, 'build_vault')
+          )
+        )
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs:
+      - setup
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run Go runtime FIPS audit gates
+        run: make fips-path-audit
+      - name: Run Go runtime FIPS audit gate unit tests
+        run: make fips-path-test-audit
+
   completed-successfully:
     # build/completed-successfully is the only build workflow that must pass in order to merge
     # a pull request. This workflow is used to determine the overall status of all the prior
@@ -704,6 +750,7 @@ jobs:
       - test-containers
       - test-hcp-image
       - fips-path-posture
+      - fips-path-go-audit
     steps:
       - name: Record build stage start time
         id: build-metric-start
