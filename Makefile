@@ -311,6 +311,35 @@ check-fips-path:
 	@echo "==> Running OSS FIPS-path posture validation gates..."
 	@$(CURDIR)/scripts/fips-path/validate-oss-posture.sh
 
+# fips-path-build runs the local FIPS-path Vault build using the golang-fips/go
+# toolchain container and emits .release/fips-path-provenance.json.
+# Requires Docker with BuildKit support.  Does NOT replace make dev / make bin.
+#
+# Override VAULT_FIPS_BUILDER_IMAGE to use a pre-built builder image:
+#   VAULT_FIPS_BUILDER_IMAGE=vault-fips-path-builder:v1.22.5-1 make fips-path-build
+#
+# NON-VALIDATION NOTICE: The resulting binary is NOT a CMVP-validated module.
+# See FIPS-140-3-COMPLIANCE.md §2a.
+.PHONY: fips-path-build
+fips-path-build:
+	@echo "==> Building Vault with golang-fips/go toolchain (FIPS-path lane)..."
+	@$(CURDIR)/scripts/fips-path/build-fips-path.sh
+
+# fips-path-detect-toolchain verifies that the Go binary on PATH is the
+# golang-fips/go distribution (version-matched, CGO enabled, no boringcrypto).
+# Useful for CI pre-flight checks inside the fips-path-builder container.
+.PHONY: fips-path-detect-toolchain
+fips-path-detect-toolchain:
+	@echo "==> Verifying golang-fips/go toolchain..."
+	@$(CURDIR)/scripts/fips-path/detect-golang-fips-toolchain.sh
+
+# fips-path-test-toolchain runs the fixture-based unit tests for the toolchain
+# detection and provenance generation scripts.  No Docker, no network required.
+.PHONY: fips-path-test-toolchain
+fips-path-test-toolchain:
+	@echo "==> Running golang-fips/go toolchain detection unit tests..."
+	@$(CURDIR)/scripts/fips-path/test-detect-golang-fips-toolchain.sh
+
 .PHONY: check-tools
 check-tools:
 	@$(CURDIR)/tools/tools.sh check
@@ -422,7 +451,7 @@ ci-copywriteheaders:
 	cd sdk && $(CURDIR)/scripts/copywrite-exceptions.sh
 	cd shamir && $(CURDIR)/scripts/copywrite-exceptions.sh
 
-.PHONY: all bin default prep test vet bootstrap fmt fmtcheck mysql-database-plugin mysql-legacy-database-plugin cassandra-database-plugin influxdb-database-plugin postgresql-database-plugin mssql-database-plugin hana-database-plugin mongodb-database-plugin ember-dist ember-dist-dev static-dist static-dist-dev assetcheck check-vault-in-path packages build build-ci semgrep semgrep-ci vet-codechecker ci-vet-codechecker dev
+.PHONY: all bin default prep test vet bootstrap fmt fmtcheck mysql-database-plugin mysql-legacy-database-plugin cassandra-database-plugin influxdb-database-plugin postgresql-database-plugin mssql-database-plugin hana-database-plugin mongodb-database-plugin ember-dist ember-dist-dev static-dist static-dist-dev assetcheck check-vault-in-path packages build build-ci semgrep semgrep-ci vet-codechecker ci-vet-codechecker dev fips-path-build fips-path-detect-toolchain fips-path-test-toolchain
 
 .NOTPARALLEL: ember-dist ember-dist-dev
 
