@@ -1,0 +1,7 @@
+# Upstream vault workflow files that are not modified by FIPS-path work.
+# This is an overlay repo; unchanged upstream files should not be committed here.
+.github/workflows/build-artifacts-ce.yml
+.github/workflows/build-artifacts-ent.yml
+
+# Forge pre-commit signal file — created during commit flow, not source
+.forge-commit-ready
