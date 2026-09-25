@@ -44,6 +44,7 @@ import (
 	server "github.com/hashicorp/vault/helper/serverconfig"
 	vaulthttp "github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/internalshared/configutil"
+	"github.com/hashicorp/vault/internalshared/fipspath"
 	"github.com/hashicorp/vault/internalshared/listenerutil"
 	loghelper "github.com/hashicorp/vault/internalshared/logging"
 	"github.com/hashicorp/vault/internalshared/metricsutil"
@@ -657,9 +658,10 @@ func (c *ServerCommand) runRecoveryMode() int {
 		info["fips"] = fipsStatus
 	}
 
-	// When VAULT_FIPS_PATH=1, check the host OS FIPS mode indicator and emit a
-	// non-fatal WARN if it is not enabled or cannot be confirmed. This is a
-	// best-effort operational evidence signal; it does not block startup.
+	// When VAULT_FIPS_PATH enforcement is active, check the host OS FIPS mode
+	// indicator and emit a non-fatal WARN if it is not enabled or cannot be
+	// confirmed. This is a best-effort operational evidence signal; it does not
+	// block startup.
 	warnHostFIPSMode(c.logger, "/proc/sys/crypto/fips_enabled")
 
    // Server configuration output
@@ -781,10 +783,10 @@ type quiescenceSink struct {
 }
 
 // warnHostFIPSMode reads the host OS FIPS mode indicator at fipsEnabledPath
-// (typically /proc/sys/crypto/fips_enabled) when VAULT_FIPS_PATH=1 and emits a
-// WARN-level structured log if host OS FIPS mode is not enabled or cannot be
-// confirmed.  The check is non-fatal: startup always continues regardless of
-// the result.
+// (typically /proc/sys/crypto/fips_enabled) when VAULT_FIPS_PATH enforcement
+// is active and emits a WARN-level structured log if host OS FIPS mode is not
+// enabled or cannot be confirmed.  The check is non-fatal: startup always
+// continues regardless of the result.
 //
 // fipsEnabledPath is accepted as a parameter (rather than hardcoding the /proc
 // path) so unit tests can supply a temporary file path without mutating real
@@ -793,7 +795,7 @@ type quiescenceSink struct {
 // The log message never includes secret material, tokens, credentials,
 // connection strings, private keys, stack traces, or request headers.
 func warnHostFIPSMode(logger hclog.Logger, fipsEnabledPath string) {
-	if os.Getenv("VAULT_FIPS_PATH") != "1" {
+	if !fipspath.Enabled() {
 		return
 	}
 

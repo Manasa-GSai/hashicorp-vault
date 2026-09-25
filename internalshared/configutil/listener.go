@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/textproto"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
 	"github.com/hashicorp/hcl/hcl/token"
+	"github.com/hashicorp/vault/internalshared/fipspath"
 	"github.com/hashicorp/vault/internalshared/namespace"
 )
 
@@ -546,42 +546,29 @@ func (l *Listener) parseRequestSettings() error {
 	return nil
 }
 
-// fipsPathApprovedTLSCipherSuites is the allow-list of cipher suite names that
-// are acceptable for TLS 1.2 configuration in a VAULT_FIPS_PATH=1 deployment.
-// TLS 1.3 cipher selection is handled automatically by Go's crypto/tls and is
-// not configurable through tls_cipher_suites; the explicit list here is
-// required as configuration evidence for FIPS-aligned audit purposes.
-//
-// Source: NIST SP 800-52 Rev 2 / config/fips-path/vault.hcl approved list.
-var fipsPathApprovedTLSCipherSuites = map[string]struct{}{
-	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   {},
-	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   {},
-	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": {},
-	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": {},
-	"TLS_RSA_WITH_AES_128_GCM_SHA256":         {},
-	"TLS_RSA_WITH_AES_256_GCM_SHA384":         {},
-}
-
 // checkFIPSPathTLSSettings validates the listener TLS configuration against
-// the FIPS-path requirements when VAULT_FIPS_PATH=1.  It is called inside
-// parseTLSSettings before the raw cipher suite value is cleared so suite name
-// comparisons remain possible.
+// the FIPS-path requirements when VAULT_FIPS_PATH enforcement is active.
+// It is called inside parseTLSSettings before the raw cipher suite value is
+// cleared so suite name comparisons remain possible.
 //
-// When VAULT_FIPS_PATH is absent, empty, or any value other than "1", this
+// When VAULT_FIPS_PATH is absent, empty, or set to a non-enabling value this
 // function always returns nil and the caller's existing parsing behavior is
 // unchanged.
 //
+// Approved cipher suites and disallowed TLS versions are sourced from the
+// central fipspath policy objects so all enforcement surfaces stay consistent.
+//
 // The function fails closed (returns a configuration error) for:
 //   - Missing or empty tls_min_version
-//   - tls_min_version values below tls12 (i.e. tls10 or tls11)
+//   - tls_min_version values in fipspath.DisallowedTLSVersions (tls10 / tls11)
 //   - Missing or whitespace-only tls_cipher_suites
-//   - Any cipher suite not in fipsPathApprovedTLSCipherSuites
+//   - Any cipher suite not in fipspath.ApprovedTLSCipherSuites
 //
-// Error messages name the failing field and, for cipher suite failures, the
-// offending suite name.  They never include certificate contents, private key
-// material, tokens, credentials, or stack traces.
+// Error messages name the failing field and the offending value. They never
+// include certificate contents, private key material, tokens, credentials, or
+// stack traces.
 func checkFIPSPathTLSSettings(tlsMinVersion, tlsCipherSuitesRaw string) error {
-	if os.Getenv("VAULT_FIPS_PATH") != "1" {
+	if !fipspath.Enabled() {
 		return nil
 	}
 
@@ -609,7 +596,7 @@ func checkFIPSPathTLSSettings(tlsMinVersion, tlsCipherSuitesRaw string) error {
 		if suite == "" {
 			continue
 		}
-		if _, ok := fipsPathApprovedTLSCipherSuites[suite]; !ok {
+		if _, ok := fipspath.ApprovedTLSCipherSuites[suite]; !ok {
 			return fmt.Errorf("FIPS-path operation rejects tls_cipher_suites entry %q: suite is not in the FIPS-Approved set; remove it or replace with an approved suite", suite)
 		}
 	}

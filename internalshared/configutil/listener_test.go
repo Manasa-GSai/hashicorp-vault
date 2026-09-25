@@ -1564,89 +1564,96 @@ func TestParseAndClearDurationSecond(t *testing.T) {
 // TestFIPSPathTLSSettings_Enabled verifies that VAULT_FIPS_PATH=1 causes
 // checkFIPSPathTLSSettings to reject bad TLS configurations.
 func TestFIPSPathTLSSettings_Enabled(t *testing.T) {
-	t.Setenv("VAULT_FIPS_PATH", "1")
+	// All three enabling values must trigger enforcement identically.
+	enablingValues := []string{"1", "true", "enabled", "TRUE", "ENABLED", "True"}
 
 	approvedSuites := "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
 
 	cases := []struct {
-		name           string
-		tlsMinVersion  string
+		name            string
+		tlsMinVersion   string
 		tlsCipherSuites string
-		wantErr        bool
-		errContains    []string
+		wantErr         bool
+		errContains     []string
 	}{
 		{
-			name:           "missing tls_min_version",
-			tlsMinVersion:  "",
+			name:            "missing tls_min_version",
+			tlsMinVersion:   "",
 			tlsCipherSuites: approvedSuites,
-			wantErr:        true,
-			errContains:    []string{"tls_min_version", "FIPS-path operation"},
+			wantErr:         true,
+			errContains:     []string{"tls_min_version", "FIPS-path operation"},
 		},
 		{
-			name:           "tls10 rejected",
-			tlsMinVersion:  "tls10",
+			name:            "tls10 rejected",
+			tlsMinVersion:   "tls10",
 			tlsCipherSuites: approvedSuites,
-			wantErr:        true,
-			errContains:    []string{"tls_min_version", "tls10", "FIPS-path operation"},
+			wantErr:         true,
+			errContains:     []string{"tls_min_version", "tls10", "FIPS-path operation"},
 		},
 		{
-			name:           "tls11 rejected",
-			tlsMinVersion:  "tls11",
+			name:            "tls11 rejected",
+			tlsMinVersion:   "tls11",
 			tlsCipherSuites: approvedSuites,
-			wantErr:        true,
-			errContains:    []string{"tls_min_version", "tls11", "FIPS-path operation"},
+			wantErr:         true,
+			errContains:     []string{"tls_min_version", "tls11", "FIPS-path operation"},
 		},
 		{
-			name:           "missing tls_cipher_suites",
-			tlsMinVersion:  "tls12",
+			name:            "missing tls_cipher_suites",
+			tlsMinVersion:   "tls12",
 			tlsCipherSuites: "",
-			wantErr:        true,
-			errContains:    []string{"tls_cipher_suites", "FIPS-path operation"},
+			wantErr:         true,
+			errContains:     []string{"tls_cipher_suites", "FIPS-path operation"},
 		},
 		{
-			name:           "non-approved cipher suite",
-			tlsMinVersion:  "tls12",
+			name:            "non-approved cipher suite",
+			tlsMinVersion:   "tls12",
 			tlsCipherSuites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-			wantErr:        true,
-			errContains:    []string{"tls_cipher_suites", "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "FIPS-path operation"},
+			wantErr:         true,
+			errContains:     []string{"tls_cipher_suites", "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "FIPS-path operation"},
 		},
 		{
-			name:           "tls12 with approved suites accepted",
-			tlsMinVersion:  "tls12",
+			name:            "tls12 with approved suites accepted",
+			tlsMinVersion:   "tls12",
 			tlsCipherSuites: approvedSuites,
-			wantErr:        false,
+			wantErr:         false,
 		},
 		{
-			name:           "tls13 with approved suites accepted",
-			tlsMinVersion:  "tls13",
+			name:            "tls13 with approved suites accepted",
+			tlsMinVersion:   "tls13",
 			tlsCipherSuites: approvedSuites,
-			wantErr:        false,
+			wantErr:         false,
 		},
 		{
-			name:           "all approved suites accepted",
-			tlsMinVersion:  "tls12",
+			name:            "all approved suites accepted",
+			tlsMinVersion:   "tls12",
 			tlsCipherSuites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384",
-			wantErr:        false,
+			wantErr:         false,
 		},
 	}
 
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			err := checkFIPSPathTLSSettings(tc.tlsMinVersion, tc.tlsCipherSuites)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("expected error, got nil")
-				}
-				for _, sub := range tc.errContains {
-					if !strings.Contains(err.Error(), sub) {
-						t.Fatalf("error %q does not contain %q", err.Error(), sub)
+	for _, gateVal := range enablingValues {
+		gateVal := gateVal
+		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
+			t.Setenv("VAULT_FIPS_PATH", gateVal)
+			for _, tc := range cases {
+				tc := tc
+				t.Run(tc.name, func(t *testing.T) {
+					err := checkFIPSPathTLSSettings(tc.tlsMinVersion, tc.tlsCipherSuites)
+					if tc.wantErr {
+						if err == nil {
+							t.Fatalf("expected error, got nil")
+						}
+						for _, sub := range tc.errContains {
+							if !strings.Contains(err.Error(), sub) {
+								t.Fatalf("error %q does not contain %q", err.Error(), sub)
+							}
+						}
+					} else {
+						if err != nil {
+							t.Fatalf("expected no error, got: %v", err)
+						}
 					}
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("expected no error, got: %v", err)
-				}
+				})
 			}
 		})
 	}
@@ -1655,7 +1662,7 @@ func TestFIPSPathTLSSettings_Enabled(t *testing.T) {
 // TestFIPSPathTLSSettings_Disabled verifies that checkFIPSPathTLSSettings
 // returns nil for all inputs when VAULT_FIPS_PATH is unset or 0.
 func TestFIPSPathTLSSettings_Disabled(t *testing.T) {
-	for _, gateVal := range []string{"", "0"} {
+	for _, gateVal := range []string{"", "0", "false", "disabled"} {
 		gateVal := gateVal
 		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
 			t.Setenv("VAULT_FIPS_PATH", gateVal)

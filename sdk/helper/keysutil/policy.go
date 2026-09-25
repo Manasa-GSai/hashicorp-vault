@@ -382,8 +382,23 @@ func (kt KeyType) String() string {
 	return "[unknown]"
 }
 
+// isFIPSPathEnabled reports whether VAULT_FIPS_PATH enforcement is active.
+// The sdk package is a separate Go module and cannot import
+// internalshared/fipspath, so the acceptance logic is duplicated here.
+//
+// Accepting values: "1", "true", "enabled" (case-insensitive, trimmed).
+// All other values, including empty string, return false.
+func isFIPSPathEnabled() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("VAULT_FIPS_PATH")))
+	switch v {
+	case "1", "true", "enabled":
+		return true
+	}
+	return false
+}
+
 // fipsPathDisallowedKeyTypes lists KeyType values that are not in the FIPS-Approved
-// algorithm set and are therefore rejected when VAULT_FIPS_PATH=1.
+// algorithm set and are therefore rejected when VAULT_FIPS_PATH enforcement is active.
 //
 // ChaCha20-Poly1305: AES-GCM is the FIPS-approved symmetric AEAD; ChaCha20-Poly1305 is not.
 // Ed25519: ECDSA (P-256/P-384/P-521) are the FIPS-approved signature schemes; Ed25519 is not.
@@ -396,15 +411,16 @@ var fipsPathDisallowedKeyTypes = []KeyType{
 	KeyType_FF3_1,
 }
 
-// checkFIPSPathKeyType returns an error if kt is disallowed under VAULT_FIPS_PATH=1.
-// When the environment variable is absent, empty, or any value other than "1", this
-// function always returns nil and the caller's existing behavior is unchanged.
+// checkFIPSPathKeyType returns an error if kt is disallowed when VAULT_FIPS_PATH
+// enforcement is active. When the environment variable is absent or set to a
+// non-enabling value, this function always returns nil and the caller's existing
+// behavior is unchanged.
 //
 // The error message includes the canonical key type name and the phrase
 // "FIPS-path operation" so SREs and automation can identify the gate condition.
 // The error message never includes key material, tokens, credentials, or stack traces.
 func checkFIPSPathKeyType(kt KeyType) error {
-	if os.Getenv("VAULT_FIPS_PATH") != "1" {
+	if !isFIPSPathEnabled() {
 		return nil
 	}
 	for _, disallowed := range fipsPathDisallowedKeyTypes {

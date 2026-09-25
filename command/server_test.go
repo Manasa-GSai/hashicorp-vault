@@ -665,80 +665,98 @@ func TestSIGHUP_ServiceRegistrationConfigReload(t *testing.T) {
 // TestFIPSPathHostFIPS_NotEnabled tests warnHostFIPSMode when fips_enabled = "0".
 // The function must emit a WARN log containing "host OS FIPS mode is not enabled"
 // and must NOT block (i.e., return normally).
+// All three enabling values must trigger the same enforcement behaviour.
 func TestFIPSPathHostFIPS_NotEnabled(t *testing.T) {
-	t.Setenv("VAULT_FIPS_PATH", "1")
+	for _, gateVal := range []string{"1", "true", "enabled"} {
+		gateVal := gateVal
+		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
+			t.Setenv("VAULT_FIPS_PATH", gateVal)
 
-	f, err := os.CreateTemp(t.TempDir(), "fips_enabled_*")
-	if err != nil {
-		t.Fatalf("could not create temp file: %v", err)
-	}
-	if _, err := f.WriteString("0\n"); err != nil {
-		t.Fatalf("could not write temp file: %v", err)
-	}
-	f.Close()
+			f, err := os.CreateTemp(t.TempDir(), "fips_enabled_*")
+			if err != nil {
+				t.Fatalf("could not create temp file: %v", err)
+			}
+			if _, err := f.WriteString("0\n"); err != nil {
+				t.Fatalf("could not write temp file: %v", err)
+			}
+			f.Close()
 
-	var buf bytes.Buffer
-	logger := hclog.New(&hclog.LoggerOptions{
-		Level:  hclog.Warn,
-		Output: &buf,
-	})
+			var buf bytes.Buffer
+			logger := hclog.New(&hclog.LoggerOptions{
+				Level:  hclog.Warn,
+				Output: &buf,
+			})
 
-	// Must not panic or block.
-	warnHostFIPSMode(logger, f.Name())
+			// Must not panic or block.
+			warnHostFIPSMode(logger, f.Name())
 
-	if !strings.Contains(buf.String(), "host OS FIPS mode is not enabled") {
-		t.Fatalf("expected 'host OS FIPS mode is not enabled' in log, got: %s", buf.String())
+			if !strings.Contains(buf.String(), "host OS FIPS mode is not enabled") {
+				t.Fatalf("expected 'host OS FIPS mode is not enabled' in log, got: %s", buf.String())
+			}
+		})
 	}
 }
 
 // TestFIPSPathHostFIPS_CouldNotConfirm tests warnHostFIPSMode when the
 // fips_enabled file is missing or unreadable.
+// All three enabling values must trigger the same enforcement behaviour.
 func TestFIPSPathHostFIPS_CouldNotConfirm(t *testing.T) {
-	t.Setenv("VAULT_FIPS_PATH", "1")
+	for _, gateVal := range []string{"1", "true", "enabled"} {
+		gateVal := gateVal
+		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
+			t.Setenv("VAULT_FIPS_PATH", gateVal)
 
-	var buf bytes.Buffer
-	logger := hclog.New(&hclog.LoggerOptions{
-		Level:  hclog.Warn,
-		Output: &buf,
-	})
+			var buf bytes.Buffer
+			logger := hclog.New(&hclog.LoggerOptions{
+				Level:  hclog.Warn,
+				Output: &buf,
+			})
 
-	// Use a path that does not exist.
-	warnHostFIPSMode(logger, "/nonexistent/path/fips_enabled_test")
+			// Use a path that does not exist.
+			warnHostFIPSMode(logger, "/nonexistent/path/fips_enabled_test")
 
-	if !strings.Contains(buf.String(), "host OS FIPS mode could not be confirmed") {
-		t.Fatalf("expected 'host OS FIPS mode could not be confirmed' in log, got: %s", buf.String())
+			if !strings.Contains(buf.String(), "host OS FIPS mode could not be confirmed") {
+				t.Fatalf("expected 'host OS FIPS mode could not be confirmed' in log, got: %s", buf.String())
+			}
+		})
 	}
 }
 
 // TestFIPSPathHostFIPS_Enabled tests that warnHostFIPSMode does not emit a
 // warning when fips_enabled = "1".
+// All three enabling values must trigger the same enforcement behaviour.
 func TestFIPSPathHostFIPS_Enabled(t *testing.T) {
-	t.Setenv("VAULT_FIPS_PATH", "1")
+	for _, gateVal := range []string{"1", "true", "enabled"} {
+		gateVal := gateVal
+		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
+			t.Setenv("VAULT_FIPS_PATH", gateVal)
 
-	f, err := os.CreateTemp(t.TempDir(), "fips_enabled_*")
-	if err != nil {
-		t.Fatalf("could not create temp file: %v", err)
-	}
-	if _, err := f.WriteString("1\n"); err != nil {
-		t.Fatalf("could not write temp file: %v", err)
-	}
-	f.Close()
+			f, err := os.CreateTemp(t.TempDir(), "fips_enabled_*")
+			if err != nil {
+				t.Fatalf("could not create temp file: %v", err)
+			}
+			if _, err := f.WriteString("1\n"); err != nil {
+				t.Fatalf("could not write temp file: %v", err)
+			}
+			f.Close()
 
-	var buf bytes.Buffer
-	logger := hclog.New(&hclog.LoggerOptions{
-		Level:  hclog.Warn,
-		Output: &buf,
-	})
+			var buf bytes.Buffer
+			logger := hclog.New(&hclog.LoggerOptions{
+				Level:  hclog.Warn,
+				Output: &buf,
+			})
 
-	warnHostFIPSMode(logger, f.Name())
+			warnHostFIPSMode(logger, f.Name())
 
-	if strings.Contains(buf.String(), "not enabled") || strings.Contains(buf.String(), "could not be confirmed") {
-		t.Fatalf("unexpected warning emitted for fips_enabled=1: %s", buf.String())
+			if strings.Contains(buf.String(), "not enabled") || strings.Contains(buf.String(), "could not be confirmed") {
+				t.Fatalf("unexpected warning emitted for fips_enabled=1: %s", buf.String())
+			}
+		})
 	}
 }
 
 // TestFIPSPathHostFIPS_Disabled verifies that warnHostFIPSMode is a no-op
-// when VAULT_FIPS_PATH is unset or 0.
+// when VAULT_FIPS_PATH is unset or set to a non-enabling value.
 func TestFIPSPathHostFIPS_Disabled(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "fips_enabled_*")
 	if err != nil {
@@ -749,7 +767,7 @@ func TestFIPSPathHostFIPS_Disabled(t *testing.T) {
 	}
 	f.Close()
 
-	for _, gateVal := range []string{"", "0"} {
+	for _, gateVal := range []string{"", "0", "false", "disabled"} {
 		gateVal := gateVal
 		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
 			t.Setenv("VAULT_FIPS_PATH", gateVal)
@@ -787,5 +805,62 @@ func TestFIPSPathHostFIPS_NoSecretLeak(t *testing.T) {
 		if strings.Contains(buf.String(), forbidden) {
 			t.Fatalf("log output contains forbidden substring %q: %s", forbidden, buf.String())
 		}
+	}
+}
+
+// TestFIPSPathStartup_GateActivation is an integration-style startup test
+// (AC7) that verifies warnHostFIPSMode (the first FIPS-path enforcement hook
+// called at startup) activates for all three enabling values and is a no-op
+// for non-enabling values.
+//
+// A fips_enabled=0 file is used so the active gate always produces a warning
+// that can be observed in the log buffer, confirming the startup code path ran.
+func TestFIPSPathStartup_GateActivation(t *testing.T) {
+	t.Parallel()
+
+	f, err := os.CreateTemp(t.TempDir(), "startup_fips_enabled_*")
+	if err != nil {
+		t.Fatalf("could not create temp file: %v", err)
+	}
+	if _, err := f.WriteString("0\n"); err != nil {
+		t.Fatalf("could not write temp file: %v", err)
+	}
+	f.Close()
+
+	cases := []struct {
+		gateVal     string
+		wantStartup bool // true = gate active; startup emits a warn
+	}{
+		{gateVal: "1", wantStartup: true},
+		{gateVal: "true", wantStartup: true},
+		{gateVal: "enabled", wantStartup: true},
+		{gateVal: "TRUE", wantStartup: true},
+		{gateVal: "ENABLED", wantStartup: true},
+		{gateVal: "", wantStartup: false},
+		{gateVal: "0", wantStartup: false},
+		{gateVal: "false", wantStartup: false},
+		{gateVal: "disabled", wantStartup: false},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run("VAULT_FIPS_PATH="+tc.gateVal, func(t *testing.T) {
+			t.Parallel()
+			t.Setenv("VAULT_FIPS_PATH", tc.gateVal)
+
+			var buf bytes.Buffer
+			logger := hclog.New(&hclog.LoggerOptions{
+				Level:  hclog.Warn,
+				Output: &buf,
+			})
+
+			warnHostFIPSMode(logger, f.Name())
+
+			activated := buf.Len() > 0
+			if activated != tc.wantStartup {
+				t.Fatalf("VAULT_FIPS_PATH=%q: wantStartup=%v but activated=%v (log: %q)",
+					tc.gateVal, tc.wantStartup, activated, buf.String())
+			}
+		})
 	}
 }

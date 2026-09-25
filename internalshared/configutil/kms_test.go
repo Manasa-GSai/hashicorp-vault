@@ -465,10 +465,12 @@ func TestMergeKMSEnvConfigAddrConformance(t *testing.T) {
 // FIPS-path: AWS KMS endpoint enforcement (WO-012)
 // ---------------------------------------------------------------------------
 
-// TestFIPSPathAWSKMS_Enabled verifies that when VAULT_FIPS_PATH=1 an awskms
-// seal with an explicit endpoint that does NOT contain "kms-fips." is rejected.
+// TestFIPSPathAWSKMS_Enabled verifies that when VAULT_FIPS_PATH enforcement is
+// active an awskms seal with an explicit endpoint that does NOT contain
+// "kms-fips." is rejected.
 func TestFIPSPathAWSKMS_Enabled(t *testing.T) {
-	t.Setenv("VAULT_FIPS_PATH", "1")
+	// All three enabling values must trigger enforcement identically.
+	enablingValues := []string{"1", "true", "enabled", "TRUE", "ENABLED"}
 
 	cases := []struct {
 		name      string
@@ -531,25 +533,31 @@ func TestFIPSPathAWSKMS_Enabled(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			err := checkFIPSPathAWSKMSEndpoint(tc.sealType, tc.config)
-			if tc.wantErr {
-				require.Error(t, err)
-				if tc.errSubstr != "" {
-					require.True(t, strings.Contains(err.Error(), tc.errSubstr),
-						"expected error to contain %q, got: %s", tc.errSubstr, err.Error())
-				}
-			} else {
-				require.NoError(t, err)
+	for _, gateVal := range enablingValues {
+		gateVal := gateVal
+		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
+			t.Setenv("VAULT_FIPS_PATH", gateVal)
+			for _, tc := range cases {
+				tc := tc
+				t.Run(tc.name, func(t *testing.T) {
+					err := checkFIPSPathAWSKMSEndpoint(tc.sealType, tc.config)
+					if tc.wantErr {
+						require.Error(t, err)
+						if tc.errSubstr != "" {
+							require.True(t, strings.Contains(err.Error(), tc.errSubstr),
+								"expected error to contain %q, got: %s", tc.errSubstr, err.Error())
+						}
+					} else {
+						require.NoError(t, err)
+					}
+				})
 			}
 		})
 	}
 }
 
 // TestFIPSPathAWSKMS_Disabled verifies that when VAULT_FIPS_PATH is unset or
-// set to any value other than "1" the endpoint check is skipped entirely.
+// set to any non-enabling value the endpoint check is skipped entirely.
 func TestFIPSPathAWSKMS_Disabled(t *testing.T) {
 	cases := []struct {
 		name string
@@ -558,6 +566,7 @@ func TestFIPSPathAWSKMS_Disabled(t *testing.T) {
 		{name: "env unset", env: ""},
 		{name: "env zero", env: "0"},
 		{name: "env false", env: "false"},
+		{name: "env disabled", env: "disabled"},
 	}
 
 	config := map[string]string{"endpoint": "https://kms.us-east-1.amazonaws.com"}
@@ -567,7 +576,7 @@ func TestFIPSPathAWSKMS_Disabled(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("VAULT_FIPS_PATH", tc.env)
 			err := checkFIPSPathAWSKMSEndpoint("awskms", config)
-			require.NoError(t, err, "endpoint check must be skipped when VAULT_FIPS_PATH != 1")
+			require.NoError(t, err, "endpoint check must be skipped when VAULT_FIPS_PATH is not active")
 		})
 	}
 }

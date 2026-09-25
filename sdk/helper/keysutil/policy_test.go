@@ -1421,12 +1421,13 @@ func TestPolicy_RotateInMemoryWithAlgorithmRejectsUsageChanges(t *testing.T) {
 	require.False(t, ok, "new key version should not be created after a rejected algorithm change")
 }
 
-// TestFIPSPathKeyType_Enabled verifies that VAULT_FIPS_PATH=1 causes
+// TestFIPSPathKeyType_Enabled verifies that VAULT_FIPS_PATH enforcement causes
 // RotateInMemoryWithAlgorithm to reject the four disallowed key types.
+// All three enabling values must trigger enforcement identically.
 // The error must contain the canonical key type name and the phrase
 // "FIPS-path operation".
 func TestFIPSPathKeyType_Enabled(t *testing.T) {
-	t.Setenv("VAULT_FIPS_PATH", "1")
+	enablingValues := []string{"1", "true", "enabled", "TRUE", "ENABLED"}
 
 	disallowedCases := []struct {
 		keyType KeyType
@@ -1438,30 +1439,36 @@ func TestFIPSPathKeyType_Enabled(t *testing.T) {
 		{KeyType_FF3_1, "ff3-1"},
 	}
 
-	for _, tc := range disallowedCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			p := NewPolicy(PolicyConfig{
-				Name: "test-" + tc.name,
-				Type: tc.keyType,
-			})
-			err := p.RotateInMemoryWithAlgorithm(rand.Reader, tc.keyType, nil)
-			if err == nil {
-				t.Fatalf("expected error for key type %q with VAULT_FIPS_PATH=1, got nil", tc.name)
-			}
-			if !strings.Contains(err.Error(), tc.name) {
-				t.Fatalf("error %q does not contain key type name %q", err.Error(), tc.name)
-			}
-			if !strings.Contains(err.Error(), "FIPS-path operation") {
-				t.Fatalf("error %q does not contain phrase 'FIPS-path operation'", err.Error())
+	for _, gateVal := range enablingValues {
+		gateVal := gateVal
+		t.Run("VAULT_FIPS_PATH="+gateVal, func(t *testing.T) {
+			t.Setenv("VAULT_FIPS_PATH", gateVal)
+			for _, tc := range disallowedCases {
+				tc := tc
+				t.Run(tc.name, func(t *testing.T) {
+					p := NewPolicy(PolicyConfig{
+						Name: "test-" + tc.name,
+						Type: tc.keyType,
+					})
+					err := p.RotateInMemoryWithAlgorithm(rand.Reader, tc.keyType, nil)
+					if err == nil {
+						t.Fatalf("expected error for key type %q with VAULT_FIPS_PATH=%q, got nil", tc.name, gateVal)
+					}
+					if !strings.Contains(err.Error(), tc.name) {
+						t.Fatalf("error %q does not contain key type name %q", err.Error(), tc.name)
+					}
+					if !strings.Contains(err.Error(), "FIPS-path operation") {
+						t.Fatalf("error %q does not contain phrase 'FIPS-path operation'", err.Error())
+					}
+				})
 			}
 		})
 	}
 }
 
-// TestFIPSPathKeyType_Disabled verifies that when VAULT_FIPS_PATH is unset or 0,
-// checkFIPSPathKeyType returns nil for all disallowed key types so the existing
-// policy validation path is unaffected.
+// TestFIPSPathKeyType_Disabled verifies that when VAULT_FIPS_PATH is unset or
+// set to a non-enabling value, checkFIPSPathKeyType returns nil for all
+// disallowed key types so the existing policy validation path is unaffected.
 func TestFIPSPathKeyType_Disabled(t *testing.T) {
 	disallowedTypes := []KeyType{
 		KeyType_ChaCha20_Poly1305,
@@ -1470,7 +1477,7 @@ func TestFIPSPathKeyType_Disabled(t *testing.T) {
 		KeyType_FF3_1,
 	}
 
-	for _, gateValue := range []string{"", "0"} {
+	for _, gateValue := range []string{"", "0", "false", "disabled"} {
 		gateValue := gateValue
 		t.Run("VAULT_FIPS_PATH="+gateValue, func(t *testing.T) {
 			t.Setenv("VAULT_FIPS_PATH", gateValue)
@@ -1485,7 +1492,7 @@ func TestFIPSPathKeyType_Disabled(t *testing.T) {
 }
 
 // TestFIPSPathKeyType_Allowed verifies that FIPS-Approved key types are not
-// rejected by checkFIPSPathKeyType when VAULT_FIPS_PATH=1.
+// rejected by checkFIPSPathKeyType when VAULT_FIPS_PATH enforcement is active.
 func TestFIPSPathKeyType_Allowed(t *testing.T) {
 	t.Setenv("VAULT_FIPS_PATH", "1")
 

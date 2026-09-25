@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
+	"github.com/hashicorp/vault/internalshared/fipspath"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -192,10 +193,11 @@ func parseKMS(result *[]*KMS, list *ast.ObjectList, blockName string, maxKMS int
 
 // checkFIPSPathAWSKMSEndpoint enforces that any explicit awskms endpoint
 // configured by an operator uses the kms-fips.<region>.amazonaws.com form when
-// VAULT_FIPS_PATH=1.  The check is offline and requires no AWS credentials.
+// VAULT_FIPS_PATH enforcement is active. The check is offline and requires no
+// AWS credentials.
 //
 // Rules:
-//   - When VAULT_FIPS_PATH is not "1" the function is a no-op.
+//   - When VAULT_FIPS_PATH is not active the function is a no-op.
 //   - When the seal type is not "awskms" the function is a no-op.
 //   - When no explicit "endpoint" key is present (or it is empty), AWS will
 //     default to the standard endpoint; this is allowed because the operator
@@ -203,7 +205,7 @@ func parseKMS(result *[]*KMS, list *ast.ObjectList, blockName string, maxKMS int
 //   - When an explicit endpoint is provided it must contain the substring
 //     "kms-fips." or an error is returned.
 func checkFIPSPathAWSKMSEndpoint(sealType string, config map[string]string) error {
-	if os.Getenv("VAULT_FIPS_PATH") != "1" {
+	if !fipspath.Enabled() {
 		return nil
 	}
 	if sealType != "awskms" {
