@@ -664,6 +664,11 @@ func (c *ServerCommand) runRecoveryMode() int {
 	// block startup.
 	warnHostFIPSMode(c.logger, "/proc/sys/crypto/fips_enabled")
 
+	// Emit structured FIPS-path startup status including enforcement state,
+	// Go runtime FIPS module status, and build provenance identifiers.
+	// The log never includes secret material, tokens, or key data.
+	logFIPSPathStartupStatus(c.logger, collectFIPSPathStartupStatus())
+
    // Server configuration output
 	padding := 24
 
